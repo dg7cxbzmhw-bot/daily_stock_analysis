@@ -840,6 +840,32 @@ Sector text.
         assert "#### 近三日催化线索" in result
         assert "AI算力板块走强" in result
 
+    def test_news_block_labels_snippets_and_preserves_source_url(self):
+        from src.market_analyzer import MarketAnalyzer
+
+        ma = MarketAnalyzer.__new__(MarketAnalyzer)
+        ma.config = SimpleNamespace(report_language="zh")
+        ma.region = "cn"
+        long_snippet = (
+            "复盘必读 2026-05-06 复盘的意义在于更清晰地把握市场脉搏，"
+            "综合描述 A 股三大指数今日集体反弹，成交额放大，科技成长方向领涨。"
+        )
+
+        result = ma._build_news_block([
+            {
+                "title": "A股收评：科创50指数放量反弹涨5.47% 两市成交额重回3万亿元",
+                "snippet": long_snippet,
+                "source": "东方财富",
+                "published_date": "2026-05-06",
+                "url": "https://example.com/news/1",
+            }
+        ])
+
+        assert "摘要/线索片段" in result
+        assert "关注点" not in result
+        assert "成交额放大" in result
+        assert "[东方财富 / 2026-05-06](https://example.com/news/1)" in result
+
     def test_market_light_snapshot_marks_defensive_market_red(self):
         from src.market_analyzer import MarketIndex, MarketOverview
 
