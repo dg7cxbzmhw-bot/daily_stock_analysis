@@ -23,5 +23,8 @@ def test_dockerfile_uses_entrypoint_to_drop_privileges() -> None:
 def test_docker_entrypoint_repairs_ownership_and_user_permissions() -> None:
     entrypoint = (REPO_ROOT / "docker" / "entrypoint.sh").read_text(encoding="utf-8")
 
+    assert "directory_needs_repair" in entrypoint
+    assert "can_write_dir_as_app_user" in entrypoint
+    assert "DATABASE_FILE" in entrypoint
     assert 'chown -R "$APP_UID:$APP_GID" "$dir"' in entrypoint
     assert 'chmod -R u+rwX "$dir"' in entrypoint
