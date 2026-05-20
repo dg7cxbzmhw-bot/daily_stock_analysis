@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [修复] 为 OpenAI-compatible 渠道补充 MiMo / LiteLLM fallback pricing 注册路径：在 Tool / Analyzer / 系统配置联调测试路径复用 `register_fallback_model_pricing`，避免未知模型因缺失计费信息导致调用失败。
 - [文档] 同步说明 fallback pricing 注册与 MiniMax / 小米 MiMo 兼容配置边界，补充相关 provider 示例与回退触发条件，限定为本次 #1282 修复范围内更新。
 - [修复] 个股报告筹码分布缺失或返回占位值时归一为单条降级说明，避免逐字段重复“数据缺失，无法判断”。
+- [文档] 补充 Issue #1367（筹码/资金流缺失文案归一）兼容边界说明：明确本轮仅覆盖筹码与资金流缺失降级链路（`data_provider/base.py`、`src/analyzer.py`、`src/core/pipeline.py`、`src/notification.py`、`src/report_language.py`、`src/services/history_service.py`、`src/services/report_renderer.py`、`templates/report_markdown.j2`）；未清理/迁移用户已有 `LITELLM_*`、`AGENT_LITELLM_MODEL`、`VISION_MODEL`、`LLM_TEMPERATURE` 等运行时配置；回退方式为恢复 `.env` 备份或手工还原原始字段。回归依据见 `tests/test_system_config_service.py` 的温度与运行时引用保留用例。
 
 ## [3.17.1] - 2026-05-16
 
