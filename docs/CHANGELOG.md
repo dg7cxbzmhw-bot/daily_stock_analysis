@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - [修复] 收口 Web 中文界面残留英文文案与设置页 help 缺口，回测页改为中文展示，并让 Web 设置页仅展示已注册且带说明的配置项。
 
-- [文档] 澄清 GitHub Actions 默认 workflow 的 `SCHEDULE_TIME` 仅作用于本地内置调度，不支持通过仓库变量调整默认 Actions 触发时点；如需调整请直接修改 `00-daily-analysis.yml` 的 `cron`。
+- [文档] 对应 Issue #1497：澄清 `SCHEDULE_TIME` 仅影响本地内置调度（`python main.py --schedule`）；仓库未配置该变量时，GitHub Actions 默认仍按 `00-daily-analysis.yml` 中的固定 `cron`（周一到周五 10:00 UTC / 北京18:00）执行。本次为文档澄清，不包含运行时实现变更；如需调整触发时刻请修改 `cron`。
 
 ## [3.19.0] - 2026-05-29
 
