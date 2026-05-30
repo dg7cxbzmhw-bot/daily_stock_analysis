@@ -318,6 +318,59 @@ class AnalysisHistoryTestCase(unittest.TestCase):
         self.assertEqual(item["volume_ratio"], 1.17)
         self.assertEqual(item["turnover_rate"], 11.46)
 
+    def test_history_list_matches_equivalent_suffixed_stock_codes(self) -> None:
+        """Same-stock history should include rows saved with supported suffixed codes."""
+
+        def save_record(code: str, query_id: str) -> None:
+            result = self._build_result()
+            result.code = code
+            if "HK" in code:
+                result.name = "腾讯控股"
+            saved = self.db.save_analysis_history(
+                result=result,
+                query_id=query_id,
+                report_type="simple",
+                news_content="新闻摘要",
+                context_snapshot=None,
+                save_snapshot=False,
+            )
+            self.assertEqual(saved, 1)
+
+        save_record("600519.SH", "query_cn_suffix")
+        save_record("600519", "query_cn_plain")
+        save_record("00700.HK", "query_hk_suffix")
+        save_record("HK00700", "query_hk_prefix")
+
+        service = HistoryService(self.db)
+
+        cn_from_suffix = service.get_history_list(stock_code="600519.SH", page=1, limit=10)
+        self.assertEqual(cn_from_suffix["total"], 2)
+        self.assertEqual(
+            {item["stock_code"] for item in cn_from_suffix["items"]},
+            {"600519.SH", "600519"},
+        )
+
+        cn_from_plain = service.get_history_list(stock_code="600519", page=1, limit=10)
+        self.assertEqual(cn_from_plain["total"], 2)
+        self.assertEqual(
+            {item["stock_code"] for item in cn_from_plain["items"]},
+            {"600519.SH", "600519"},
+        )
+
+        hk_from_suffix = service.get_history_list(stock_code="00700.HK", page=1, limit=10)
+        self.assertEqual(hk_from_suffix["total"], 2)
+        self.assertEqual(
+            {item["stock_code"] for item in hk_from_suffix["items"]},
+            {"00700.HK", "HK00700"},
+        )
+
+        hk_from_prefix = service.get_history_list(stock_code="HK00700", page=1, limit=10)
+        self.assertEqual(hk_from_prefix["total"], 2)
+        self.assertEqual(
+            {item["stock_code"] for item in hk_from_prefix["items"]},
+            {"00700.HK", "HK00700"},
+        )
+
     def test_history_detail_preserves_zero_change_pct(self) -> None:
         """change_pct=0.0（平盘）应原样返回，而不是被当成缺失值丢失。
 

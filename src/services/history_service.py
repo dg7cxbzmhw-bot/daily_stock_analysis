@@ -67,6 +67,56 @@ class HistoryService:
             db_manager: Database manager (optional, defaults to singleton instance)
         """
         self.db = db_manager or DatabaseManager.get_instance()
+
+    @staticmethod
+    def _history_code_filter_candidates(stock_code: str) -> List[str]:
+        raw_code = str(stock_code or "").strip()
+        if not raw_code:
+            return []
+
+        candidates: List[str] = []
+
+        def add(candidate: str) -> None:
+            candidate = str(candidate or "").strip().upper()
+            if candidate and candidate not in candidates:
+                candidates.append(candidate)
+
+        try:
+            from data_provider.base import (
+                canonical_stock_code,
+                is_bse_code,
+                normalize_stock_code,
+            )
+
+            raw_canonical = canonical_stock_code(raw_code)
+            normalized = canonical_stock_code(normalize_stock_code(raw_canonical))
+        except Exception:
+            add(raw_code)
+            return candidates
+
+        add(raw_canonical)
+        add(normalized)
+
+        if normalized.startswith("HK") and normalized[2:].isdigit():
+            add(f"{normalized[2:].zfill(5)}.HK")
+        elif normalized.isdigit() and len(normalized) == 5:
+            hk_code = normalized.zfill(5)
+            add(f"HK{hk_code}")
+            add(f"{hk_code}.HK")
+        elif normalized.isdigit() and len(normalized) == 6:
+            exchange = None
+            if is_bse_code(normalized):
+                exchange = "BJ"
+            elif normalized.startswith(("5", "6", "9")):
+                exchange = "SH"
+            elif normalized.startswith(("0", "1", "2", "3")):
+                exchange = "SZ"
+
+            if exchange:
+                add(f"{normalized}.{exchange}")
+                add(f"{exchange}{normalized}")
+
+        return candidates
     
     def get_history_list(
         self,
@@ -91,12 +141,7 @@ class HistoryService:
         """
         try:
             if stock_code:
-                try:
-                    from data_provider.base import canonical_stock_code, normalize_stock_code
-
-                    stock_code = canonical_stock_code(normalize_stock_code(stock_code))
-                except Exception:
-                    stock_code = stock_code.strip()
+                stock_code = self._history_code_filter_candidates(stock_code)
 
             # Parse date parameters
             start_dt = None
