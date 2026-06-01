@@ -11,6 +11,7 @@ import { DashboardStateBlock } from '../components/dashboard';
 import { StockAutocomplete } from '../components/StockAutocomplete';
 import { HistoryList, StockHistoryTrendDrawer } from '../components/history';
 import { ReportMarkdownDrawer } from '../components/report/ReportMarkdownDrawer';
+import { ReportMarkdownContent } from '../components/report/ReportMarkdownContent';
 import { ReportSummary } from '../components/report/ReportSummary';
 import { TaskPanel } from '../components/tasks';
 import { useDashboardLifecycle, useHomeDashboardState } from '../hooks';
@@ -791,12 +792,11 @@ const HomePage: React.FC = () => {
                     {marketReviewReportCopied ? '已复制' : '复制'}
                   </button>
                 </div>
-                <pre
-                  data-testid="market-review-report"
-                  className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-background px-3 py-2 leading-relaxed"
-                >
-                  {marketReviewReport}
-                </pre>
+                <ReportMarkdownContent
+                  content={marketReviewReport}
+                  testId="market-review-report"
+                  className="rounded-lg bg-background px-3 py-2"
+                />
               </div>
             ) : null}
 

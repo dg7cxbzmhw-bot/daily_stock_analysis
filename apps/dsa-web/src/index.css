@@ -1892,6 +1892,10 @@ textarea {
   padding-bottom: 0.5rem;
 }
 
+.home-markdown-prose {
+  min-width: 0;
+}
+
 .home-markdown-prose :where(h2) {
   color: hsl(var(--color-purple));
 }
@@ -1906,6 +1910,16 @@ textarea {
 .home-markdown-prose :where(pre) {
   border: 1px solid var(--home-prose-border);
   background: hsl(var(--elevated) / 0.92);
+  overflow-x: auto;
+}
+
+.home-markdown-prose :where(table) {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  -webkit-overflow-scrolling: touch;
 }
 
 .home-markdown-prose :where(th, td) {

@@ -7,6 +7,7 @@ import type {
 import { Badge, Card, ScoreGauge } from '../common';
 import { formatDateTime } from '../../utils/format';
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
+import { ReportMarkdownContent } from './ReportMarkdownContent';
 
 interface ReportOverviewProps {
   meta: ReportMeta;
@@ -83,6 +84,7 @@ export const ReportOverview: React.FC<ReportOverviewProps> = ({
   const relatedBoards = (Array.isArray(details?.belongBoards) ? details.belongBoards : [])
     .filter((board) => normalizeBoardName(board?.name).length > 0);
   const boardSignals = buildBoardSignalMap(details);
+  const isMarketReview = meta.reportType === 'market_review';
 
   const getPriceChangeStyle = (changePct: number | undefined): React.CSSProperties | undefined => {
     if (changePct === undefined || changePct === null) {
@@ -163,9 +165,17 @@ export const ReportOverview: React.FC<ReportOverviewProps> = ({
             {/* 关键结论 */}
             <div className="home-divider border-t pt-5">
               <span className="label-uppercase">{text.keyInsights}</span>
-              <p className="mt-2 max-w-[62ch] whitespace-pre-wrap text-left text-[15px] leading-7 text-foreground">
-                {summary.analysisSummary || text.noAnalysisSummary}
-              </p>
+              {isMarketReview ? (
+                <ReportMarkdownContent
+                  content={summary.analysisSummary || text.noAnalysisSummary}
+                  className="mt-2 text-left"
+                  testId="market-review-history-markdown"
+                />
+              ) : (
+                <p className="mt-2 max-w-[62ch] whitespace-pre-wrap text-left text-[15px] leading-7 text-foreground">
+                  {summary.analysisSummary || text.noAnalysisSummary}
+                </p>
+              )}
             </div>
           </Card>
 

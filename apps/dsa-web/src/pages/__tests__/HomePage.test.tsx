@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { analysisApi, DuplicateTaskError } from '../../api/analysis';
@@ -289,6 +289,98 @@ describe('HomePage', () => {
     expect(analysisApi.getStatus).toHaveBeenCalledWith('task-1');
   });
 
+  it('renders completed market review report as markdown in the dashboard', async () => {
+    vi.mocked(historyApi.getList).mockResolvedValue({
+      total: 0,
+      page: 1,
+      limit: 20,
+      items: [],
+    });
+    vi.mocked(analysisApi.triggerMarketReview).mockResolvedValue({
+      status: 'accepted',
+      sendNotification: true,
+      message: '大盘复盘任务已提交',
+      taskId: 'task-1',
+    });
+    vi.mocked(analysisApi.getStatus).mockResolvedValue({
+      taskId: 'task-1',
+      status: 'completed',
+      marketReviewReport: [
+        '# 大盘复盘',
+        '',
+        '> 市场今日呈现震荡修复',
+        '',
+        '**盘面信号**',
+        '',
+        '- 成交额放大',
+        '',
+        '| 指标 | 数值 |',
+        '| --- | --- |',
+        '| 上证指数 | +1.2% |',
+      ].join('\n'),
+    });
+
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '大盘复盘' }));
+
+    const report = await screen.findByTestId('market-review-report');
+    expect(within(report).getByRole('heading', { name: '大盘复盘', level: 1 })).toBeInTheDocument();
+    expect(within(report).getByText('市场今日呈现震荡修复').closest('blockquote')).toBeTruthy();
+    expect(within(report).getByText('盘面信号').tagName).toBe('STRONG');
+    expect(within(report).getByText('成交额放大').closest('li')).toBeTruthy();
+    expect(within(report).getByText('+1.2%').closest('table')).toBeTruthy();
+    expect(within(report).queryByText('**盘面信号**')).not.toBeInTheDocument();
+  });
+
+  it('renders market review history detail body as markdown', async () => {
+    vi.mocked(historyApi.getList).mockResolvedValue({
+      total: 1,
+      page: 1,
+      limit: 20,
+      items: [marketReviewHistoryItem],
+    });
+    vi.mocked(historyApi.getDetail).mockResolvedValue({
+      ...marketReviewHistoryReport,
+      summary: {
+        ...marketReviewHistoryReport.summary,
+        analysisSummary: [
+          '# 大盘复盘',
+          '',
+          '## 今日大盘',
+          '',
+          '> 情绪修复',
+          '',
+          '**信号依据**',
+          '',
+          '- 放量',
+          '',
+          '| 指标 | 数值 |',
+          '| --- | --- |',
+          '| 上证指数 | +0.8% |',
+        ].join('\n'),
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    const report = await screen.findByTestId('market-review-history-markdown');
+    expect(within(report).getByRole('heading', { name: '今日大盘', level: 2 })).toBeInTheDocument();
+    expect(within(report).getByText('情绪修复').closest('blockquote')).toBeTruthy();
+    expect(within(report).getByText('信号依据').tagName).toBe('STRONG');
+    expect(within(report).getByText('放量').closest('li')).toBeTruthy();
+    expect(within(report).getByText('+0.8%').closest('table')).toBeTruthy();
+    expect(within(report).queryByText('**信号依据**')).not.toBeInTheDocument();
+  });
+
   it('scrolls the dashboard to market review feedback after toolbar clicks', async () => {
     vi.mocked(historyApi.getList).mockResolvedValue({
       total: 1,
@@ -551,8 +643,8 @@ describe('HomePage', () => {
     await waitFor(() => {
       expect(screen.queryByText('暂无更多同股历史分析')).not.toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /继续观察买点/ })).toBeInTheDocument();
-    expect(screen.getByText(/共 1 次分析/)).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /继续观察买点/ })).toBeInTheDocument();
+    expect(screen.getByText(/已加载 1 \/ 1 条/)).toBeInTheDocument();
 
     const historyCalls = vi.mocked(historyApi.getList).mock.calls.filter((call) => call[0]?.stockCode === '600519');
     expect(historyCalls).toHaveLength(3);
