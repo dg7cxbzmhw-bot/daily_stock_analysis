@@ -437,7 +437,7 @@ async function fetchMarketReviewHistory(
       });
     } else {
       set({
-        marketReviewHistoryItems: [...get().marketReviewHistoryItems, ...response.items],
+        marketReviewHistoryItems: dedupeHistoryItems([...get().marketReviewHistoryItems, ...response.items]),
         marketReviewHistoryPage: page,
       });
     }
