@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [改进] #1381 个股分析新增按当日/市场复用的大盘环境摘要，普通 Pipeline 与 Agent 分析 Prompt 可读取低敏大盘背景，并在高风险/退潮环境下软化激进买入建议。
 - [文档] #1381 说明与实现范围对齐：本轮仅补齐后端上下文注入与保守护栏，不包含独立 API、Web 阶段结果独立展示、四阶段日报结构化持久化或新增日报状态表。
 - [测试] #1381 回归覆盖：`pytest -q tests/test_main_schedule_mode.py tests/test_daily_market_context.py tests/test_daily_market_context_guardrail.py tests/test_agent_executor.py`，覆盖 schedule/dry-run、市场复用上下文加载、单次护栏应用、Agent Prompt 注入主链路；通过 86 个用例。
-- [文档] #1381 兼容边界补充：本 PR 未新增 provider/model/base_url 运行时迁移或清理语义，仅复用既有 LLM 配置链路；官方配置语义与回退边界沿用 `LiteLLM OpenAI-compatible` 与 `OpenAI Chat Completion API` 兼容口径，回滚方式为常规发布回滚。
+- [文档] #1381 兼容边界补充：本 PR 未新增 `provider/model/base_url`、默认模型、配置清理/回填迁移语义，仅复用既有 LLM 配置链路；官方配置语义与回退边界沿用 `LiteLLM OpenAI-compatible` 与 `OpenAI Chat Completion API` 兼容口径，回滚方式为常规发布回滚。
 
 ## [3.20.0] - 2026-06-03
 
