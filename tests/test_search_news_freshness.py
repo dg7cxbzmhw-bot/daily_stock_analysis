@@ -742,6 +742,33 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
         )
         self.assertEqual(resp.results[0].relevance_category, "direct_company_news")
 
+    def test_neutral_app_download_scale_metric_does_not_trigger_download_filter(self) -> None:
+        """Neutral app download scale metrics are operating news, not download pages."""
+        fresh = datetime.now().date().isoformat()
+        service, _ = self._create_service_with_mock_provider(
+            news_max_age_days=3,
+            news_strategy_profile="short",
+            response=_response(
+                [
+                    _result(
+                        "拼多多 PDD Temu 应用下载量达1亿",
+                        fresh,
+                        snippet="Temu 应用下载量达1亿，市场关注跨境业务获客效率。",
+                        url="https://finance.example.invalid/app/news/pdd-temu-downloads",
+                        source="finance.example.invalid",
+                    )
+                ]
+            ),
+        )
+
+        resp = service.search_stock_news("PDD", "PDD Holdings", max_results=1)
+
+        self.assertEqual(
+            [item.title for item in resp.results],
+            ["拼多多 PDD Temu 应用下载量达1亿"],
+        )
+        self.assertEqual(resp.results[0].relevance_category, "direct_company_news")
+
     def test_app_download_decline_metrics_do_not_trigger_download_filter(self) -> None:
         """Negative app download/install metrics are also business news."""
         fresh = datetime.now().date().isoformat()
@@ -1002,6 +1029,42 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
         self.assertEqual(
             [item.title for item in resp.results],
             ["腾讯控股 00700 发布回购公告", "董事会公告"],
+        )
+        official_result = resp.results[1]
+        self.assertGreater(official_result.relevance_score or 0, 0)
+        self.assertIn("来源接近公告或交易所渠道", official_result.relevance_reasons)
+
+    def test_full_chinese_official_source_label_is_honored_without_url(self) -> None:
+        """Full Chinese exchange labels without URL should retain official-source treatment."""
+        fresh = datetime.now().date().isoformat()
+        service, _ = self._create_service_with_mock_provider(
+            news_max_age_days=3,
+            news_strategy_profile="short",
+            response=_response(
+                [
+                    SearchResult(
+                        title="上市公司公告",
+                        snippet="股份回购事项。",
+                        url="",
+                        source="上海证券交易所",
+                        published_date=fresh,
+                    ),
+                    _result(
+                        "贵州茅台 600519 发布回购公告",
+                        fresh,
+                        snippet="贵州茅台披露股份回购公告。",
+                        url="https://finance.example.invalid/news/600519-buyback",
+                        source="finance.example.invalid",
+                    ),
+                ]
+            ),
+        )
+
+        resp = service.search_stock_news("600519", "贵州茅台", max_results=2)
+
+        self.assertEqual(
+            [item.title for item in resp.results],
+            ["贵州茅台 600519 发布回购公告", "上市公司公告"],
         )
         official_result = resp.results[1]
         self.assertGreater(official_result.relevance_score or 0, 0)

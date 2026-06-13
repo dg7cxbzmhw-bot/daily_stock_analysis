@@ -2168,7 +2168,9 @@ class SearchService:
         "sec.gov", "nasdaq.com", "nyse.com",
     )
     _OFFICIAL_SOURCE_LABELS = (
-        "cninfo", "hkexnews", "上交所", "深交所", "港交所", "证券交易所",
+        "cninfo", "hkexnews", "巨潮资讯", "巨潮资讯网",
+        "上交所", "深交所", "港交所", "证券交易所",
+        "上海证券交易所", "深圳证券交易所", "香港交易所", "香港联合交易所",
     )
     _LOW_QUALITY_DOWNLOAD_ACTION_TERMS = (
         "下载", "安装", "下载安装", "下载安装到手机", "下载链接",
@@ -2202,8 +2204,8 @@ class SearchService:
     )
     _BUSINESS_APP_METRIC_RE = re.compile(
         r"(?:(?:下载量|安装量|装机量).{0,12}"
-        r"(?:增长|同比|环比|上升|增加|提升|突破|创新高|下降|下滑|减少|回落|放缓|持平|承压|低迷)|"
-        r"(?:增长|同比|环比|上升|增加|提升|突破|创新高|下降|下滑|减少|回落|放缓|持平|承压|低迷)"
+        r"(?:增长|同比|环比|上升|增加|提升|突破|达到|达|超过|超|累计|接近|保持|创新高|下降|下滑|减少|回落|放缓|持平|承压|低迷)|"
+        r"(?:增长|同比|环比|上升|增加|提升|突破|达到|达|超过|超|累计|接近|保持|创新高|下降|下滑|减少|回落|放缓|持平|承压|低迷)"
         r".{0,12}(?:下载量|安装量|装机量)|"
         r"\b(?:downloads?|installs?)\b.{0,16}"
         r"\b(?:grew|growth|rose|increase|increased|surged|fell|fall|declined|decline|"
