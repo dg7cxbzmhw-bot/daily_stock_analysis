@@ -2171,15 +2171,15 @@ class SearchService:
         "cninfo", "hkexnews", "上交所", "深交所", "港交所", "证券交易所",
     )
     _LOW_QUALITY_PAGE_TERMS = (
-        "下载", "安装", "安卓版", "苹果版", "官方版", "最新版", "客户端",
+        "下载", "安装", "安卓版", "苹果版", "官方版", "最新版",
         "安装包", "资源包", "应用商店", "游戏", "手游", "app", "apk",
         "download", "install", "installer", "software", "game", "mobile app",
     )
     _LOW_QUALITY_DOWNLOAD_INTENT_TERMS = (
-        "安装包", "安卓版", "苹果版", "官方版", "客户端下载", "应用下载", "客户端",
+        "安装包", "安卓版", "苹果版", "官方版", "客户端下载", "应用下载",
     )
     _LOW_QUALITY_DOWNLOAD_CONTEXT_TERMS = (
-        "下载", "安装", "安卓版", "苹果版", "官方版", "最新版", "客户端",
+        "下载", "安装", "安卓版", "苹果版", "官方版", "最新版",
         "安装包", "资源包", "应用商店", "apk", "download", "install",
         "installer", "software", "mobile app",
     )
@@ -2200,7 +2200,7 @@ class SearchService:
         re.IGNORECASE,
     )
     _ADULT_SERVICE_SPAM_STRONG_TERMS = (
-        "上门特殊服务", "同城约", "约炮", "援交", "楼凤", "外围", "包夜",
+        "上门特殊服务", "同城约", "约炮", "援交", "楼凤", "包夜",
         "大保健", "莞式", "推油", "全套服务", "成人服务", "色情",
         "adult service", "escort service", "sex service", "call girl",
     )
@@ -2790,6 +2790,15 @@ class SearchService:
         ):
             return True
         if cls._ADULT_SERVICE_SPAM_CONTACT_RE.search(combined_text):
+            return True
+
+        if (
+            "外围" in combined_text
+            and cls._contains_any_news_term(
+                combined_text,
+                ("上门", "同城", "约炮", "援交", "包夜", "大保健", "推油", "小姐", "技师"),
+            )
+        ):
             return True
 
         context_hits = sum(

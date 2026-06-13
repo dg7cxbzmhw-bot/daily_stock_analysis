@@ -557,6 +557,56 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
 
         self.assertEqual([item.title for item in resp.results], ["腾讯控股 00700 发布回购公告"])
 
+    def test_rich_media_client_phrase_in_ticker_news_is_not_filtered(self) -> None:
+        """Client wording used in normal headline styles should not be treated as download spam."""
+        fresh = datetime.now().date().isoformat()
+        service, _ = self._create_service_with_mock_provider(
+            news_max_age_days=3,
+            news_strategy_profile="short",
+            response=_response(
+                [
+                    _result(
+                        "证券时报客户端讯，贵州茅台 600519 发布回购公告",
+                        fresh,
+                        snippet="贵茅披露股票回购公告。",
+                        source="finance.example.invalid",
+                    ),
+                ]
+            ),
+        )
+
+        resp = service.search_stock_news("600519", "贵州茅台", max_results=1)
+
+        self.assertEqual(
+            [item.title for item in resp.results],
+            ["证券时报客户端讯，贵州茅台 600519 发布回购公告"],
+        )
+
+    def test_outer_market_phrase_is_not_filtered_as_adult_spam(self) -> None:
+        """`外围市场` market-context headlines should not be treated as adult spam."""
+        fresh = datetime.now().date().isoformat()
+        service, _ = self._create_service_with_mock_provider(
+            news_max_age_days=3,
+            news_strategy_profile="short",
+            response=_response(
+                [
+                    _result(
+                        "外围市场走弱拖累科技股",
+                        fresh,
+                        snippet="外围市场情绪走弱，带动科技股阶段性回撤。",
+                        source="finance.example.invalid",
+                    ),
+                ]
+            ),
+        )
+
+        resp = service.search_stock_news("00700.HK", "腾讯控股", max_results=1)
+
+        self.assertEqual(
+            [item.title for item in resp.results],
+            ["外围市场走弱拖累科技股"],
+        )
+
     def test_url_only_app_route_does_not_drop_direct_stock_news(self) -> None:
         """App-style news hosts or paths need content evidence before admission drops."""
         fresh = datetime.now().date().isoformat()
