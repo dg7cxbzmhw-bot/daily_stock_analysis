@@ -449,6 +449,26 @@ function normalizeBackupFileList(manifest) {
   return DESKTOP_UPDATE_RUNTIME_RELATIVE_FILES.slice();
 }
 
+function copyRuntimeStatePathSync(source, target) {
+  const stats = fs.statSync(source);
+  if (stats.isDirectory()) {
+    fs.rmSync(target, { recursive: true, force: true });
+    fs.mkdirSync(target, { recursive: true });
+    fs.readdirSync(source, { withFileTypes: true }).forEach((entry) => {
+      copyRuntimeStatePathSync(path.join(source, entry.name), path.join(target, entry.name));
+    });
+    return;
+  }
+
+  if (!stats.isFile()) {
+    throw new Error(`unsupported runtime state path type: ${source}`);
+  }
+
+  ensureDirectory(path.dirname(target));
+  fs.rmSync(target, { recursive: true, force: true });
+  fs.copyFileSync(source, target);
+}
+
 function backupPackagedRuntimeState() {
   if (!isWindowsNsisInstalledApp()) {
     return;
@@ -464,8 +484,7 @@ function backupPackagedRuntimeState() {
     if (!fs.existsSync(absolutePath)) {
       return;
     }
-    ensureDirectory(path.dirname(backupPath));
-    fs.copyFileSync(absolutePath, backupPath);
+    copyRuntimeStatePathSync(absolutePath, backupPath);
     backedUpFiles.push(relativePath);
   });
 
@@ -531,8 +550,7 @@ function restorePackagedRuntimeStateFromBackup() {
         if (!fs.existsSync(source)) {
           return;
         }
-        ensureDirectory(path.dirname(target));
-        fs.copyFileSync(source, target);
+        copyRuntimeStatePathSync(source, target);
         result.restored.push(relativePath);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -604,8 +622,7 @@ function migrateMacPackagedRuntimeState() {
     }
 
     try {
-      ensureDirectory(path.dirname(target));
-      fs.copyFileSync(source, target);
+      copyRuntimeStatePathSync(source, target);
       result.migrated.push(relativePath);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1710,6 +1727,7 @@ module.exports = {
   UPDATE_MODE,
   UPDATE_STATUS,
   buildUpdateState,
+  backupPackagedRuntimeState,
   checkForDesktopUpdates,
   compareVersions,
   evaluateReleaseUpdate,

@@ -370,6 +370,58 @@ test('desktop update backup list preserves AlphaSift caches', (t) => {
   assert.ok(files.includes(path.join('data', 'alphasift', 'snapshot.last_good.json')));
 });
 
+test('desktop update backup and restore preserve AlphaSift detail directories recursively', (t) => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-dir-backup-'));
+  const appDir = path.join(tempRoot, 'app');
+  const userDataDir = path.join(tempRoot, 'userData');
+  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const detailRelativePath = path.join('data', 'alphasift', 'hotspot_details');
+  const topicDetailPath = path.join(appDir, detailRelativePath, 'AI算力', 'detail.json');
+  const nestedDetailPath = path.join(appDir, detailRelativePath, 'AI算力', 'events', 'latest.json');
+  let currentVersion = '3.12.0';
+
+  fs.mkdirSync(path.dirname(nestedDetailPath), { recursive: true });
+  fs.mkdirSync(userDataDir, { recursive: true });
+  fs.writeFileSync(path.join(appDir, 'Uninstall Daily Stock Analysis.exe'), '');
+  fs.writeFileSync(topicDetailPath, '{"topic":"AI算力"}\n', 'utf-8');
+  fs.writeFileSync(nestedDetailPath, '{"events":1}\n', 'utf-8');
+
+  const mainModule = loadMainModule(t, {
+    platform: 'win32',
+    app: {
+      isPackaged: true,
+      getPath: (name) => {
+        if (name === 'exe') {
+          return path.join(appDir, 'Daily Stock Analysis.exe');
+        }
+        return userDataDir;
+      },
+      getVersion: () => currentVersion,
+    },
+  });
+
+  t.after(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  mainModule.backupPackagedRuntimeState();
+  assert.equal(fs.readFileSync(path.join(backupRoot, detailRelativePath, 'AI算力', 'detail.json'), 'utf-8'), '{"topic":"AI算力"}\n');
+  assert.equal(fs.readFileSync(path.join(backupRoot, detailRelativePath, 'AI算力', 'events', 'latest.json'), 'utf-8'), '{"events":1}\n');
+  assert.ok(
+    JSON.parse(fs.readFileSync(path.join(backupRoot, 'runtime-state.json'), 'utf-8')).files.includes(detailRelativePath)
+  );
+
+  fs.rmSync(path.join(appDir, detailRelativePath), { recursive: true, force: true });
+  currentVersion = '3.13.0';
+  const restoreResult = mainModule.restorePackagedRuntimeStateFromBackup();
+
+  assert.deepEqual(restoreResult.failed, []);
+  assert.ok(restoreResult.restored.includes(detailRelativePath));
+  assert.equal(fs.readFileSync(topicDetailPath, 'utf-8'), '{"topic":"AI算力"}\n');
+  assert.equal(fs.readFileSync(nestedDetailPath, 'utf-8'), '{"events":1}\n');
+  assert.equal(fs.existsSync(backupRoot), false);
+});
+
 test('macOS packaged runtime state uses userData and migrates old app bundle files', (t) => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-desktop-macos-migrate-'));
   const oldAppDir = path.join(tempRoot, 'Daily Stock Analysis.app', 'Contents', 'MacOS');
@@ -377,14 +429,17 @@ test('macOS packaged runtime state uses userData and migrates old app bundle fil
   const exePath = path.join(oldAppDir, 'Daily Stock Analysis');
   const oldDbPath = path.join(oldAppDir, 'data', 'stock_analysis.db');
   const oldLogPath = path.join(oldAppDir, 'logs', 'desktop.log');
+  const oldHotspotDetailPath = path.join(oldAppDir, 'data', 'alphasift', 'hotspot_details', 'AI算力', 'detail.json');
 
   fs.mkdirSync(path.dirname(oldDbPath), { recursive: true });
   fs.mkdirSync(path.dirname(oldLogPath), { recursive: true });
+  fs.mkdirSync(path.dirname(oldHotspotDetailPath), { recursive: true });
   fs.mkdirSync(userDataDir, { recursive: true });
   fs.writeFileSync(exePath, '');
   fs.writeFileSync(path.join(oldAppDir, '.env'), 'OPENAI_API_KEY=old-key\n', 'utf-8');
   fs.writeFileSync(oldDbPath, 'old-db');
   fs.writeFileSync(oldLogPath, 'old-log\n', 'utf-8');
+  fs.writeFileSync(oldHotspotDetailPath, '{"topic":"AI算力"}\n', 'utf-8');
 
   const mainModule = loadMainModule(t, {
     platform: 'darwin',
@@ -408,10 +463,19 @@ test('macOS packaged runtime state uses userData and migrates old app bundle fil
   assert.deepEqual(migrationResult.failed, []);
   assert.deepEqual(
     [...migrationResult.migrated].sort(),
-    ['.env', path.join('data', 'stock_analysis.db'), path.join('logs', 'desktop.log')].sort()
+    [
+      '.env',
+      path.join('data', 'stock_analysis.db'),
+      path.join('data', 'alphasift', 'hotspot_details'),
+      path.join('logs', 'desktop.log'),
+    ].sort()
   );
   assert.equal(fs.readFileSync(path.join(userDataDir, '.env'), 'utf-8'), 'OPENAI_API_KEY=old-key\n');
   assert.equal(fs.readFileSync(path.join(userDataDir, 'data', 'stock_analysis.db'), 'utf-8'), 'old-db');
+  assert.equal(
+    fs.readFileSync(path.join(userDataDir, 'data', 'alphasift', 'hotspot_details', 'AI算力', 'detail.json'), 'utf-8'),
+    '{"topic":"AI算力"}\n'
+  );
   assert.equal(fs.readFileSync(path.join(userDataDir, 'logs', 'desktop.log'), 'utf-8'), 'old-log\n');
 });
 

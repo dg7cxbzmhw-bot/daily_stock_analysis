@@ -7,6 +7,7 @@ import os
 import json
 import sys
 import tempfile
+import time
 import unittest
 from datetime import datetime
 from pathlib import Path
@@ -583,16 +584,21 @@ class AlphaSiftOpportunitiesApiTestCase(unittest.TestCase):
                 }
 
         get_mock = MagicMock(side_effect=[requests.exceptions.ConnectionError("Connection aborted"), FakeResponse()])
+        provider._last_request_ts = time.monotonic()
         with (
             patch("src.services.alphasift_service.time.sleep") as sleep_mock,
-            patch("requests.get", get_mock),
+            patch.object(provider._session, "get", get_mock),
+            patch("requests.get", side_effect=AssertionError("bare requests.get should not be used for EastMoney hotspots")) as bare_get,
         ):
             frame = provider._fetch_board_names(source_fs="m:90 t:3 f:!50")
 
         self.assertFalse(frame.empty)
         self.assertEqual(frame.iloc[0]["name"], "AI算力")
         self.assertEqual(get_mock.call_count, 2)
-        sleep_mock.assert_called_once_with(0.3)
+        bare_get.assert_not_called()
+        sleep_values = [call.args[0] for call in sleep_mock.call_args_list if call.args]
+        self.assertIn(0.3, sleep_values)
+        self.assertTrue(any(0 < value <= provider._min_request_interval for value in sleep_values))
 
     def test_hotspots_respects_custom_alphasift_data_dir_for_cache_paths(self) -> None:
         config = self._config(enabled=True)
