@@ -1305,8 +1305,7 @@ class StockAnalysisPipeline:
                 result.query_id = query_id
             # Agent weak integrity: placeholder fill only, no LLM retry
             if result and getattr(self.config, "report_integrity_enabled", False):
-                from src.data.stock_mapping import STOCK_NAME_MAP
-from src.analyzer import check_content_integrity, apply_placeholder_fill
+                from src.analyzer import check_content_integrity, apply_placeholder_fill
 
                 pass_integrity, missing = check_content_integrity(
                     result,
