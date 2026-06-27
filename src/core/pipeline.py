@@ -28,6 +28,7 @@ from src.storage import get_db
 from data_provider import DataFetcherManager
 from data_provider.base import is_bse_code, normalize_stock_code
 from data_provider.realtime_types import ChipDistribution
+from src.data.stock_mapping import STOCK_NAME_MAP
 from src.analyzer import (
     GeminiAnalyzer,
     AnalysisResult,
@@ -322,7 +323,12 @@ class StockAnalysisPipeline:
         stock_name = code
         try:
             # 首先获取股票名称
-            stock_name = self.fetcher_manager.get_stock_name(code, allow_realtime=False)
+            # 优先从静态映射表获取中文名称（台股 yfinance 返回英文名）
+            from src.data.stock_mapping import STOCK_NAME_MAP
+            if code in STOCK_NAME_MAP:
+                stock_name = STOCK_NAME_MAP[code]
+            else:
+                stock_name = self.fetcher_manager.get_stock_name(code, allow_realtime=False)
 
             target_date = self._resolve_resume_target_date(
                 code, current_time=current_time
@@ -411,7 +417,12 @@ class StockAnalysisPipeline:
 
             self._emit_progress(18, f"{code}：正在获取行情与筹码数据")
             # 获取股票名称（先走轻量名称路径，后续若 realtime_quote 有 name 再覆盖）
-            stock_name = self.fetcher_manager.get_stock_name(code, allow_realtime=False)
+            # 优先从静态映射表获取中文名称（台股 yfinance 返回英文名）
+            from src.data.stock_mapping import STOCK_NAME_MAP
+            if code in STOCK_NAME_MAP:
+                stock_name = STOCK_NAME_MAP[code]
+            else:
+                stock_name = self.fetcher_manager.get_stock_name(code, allow_realtime=False)
 
             # Step 1: 获取实时行情（量比、换手率等）- 使用统一入口，自动故障切换
             realtime_quote = None
@@ -421,7 +432,12 @@ class StockAnalysisPipeline:
                     if realtime_quote:
                         # 使用实时行情返回的真实股票名称
                         if realtime_quote.name:
-                            stock_name = realtime_quote.name
+                            # 台股等 yfinance 来源返回英文名，优先用 STOCK_NAME_MAP 中文名
+                            from src.data.stock_mapping import STOCK_NAME_MAP
+                            if code in STOCK_NAME_MAP:
+                                stock_name = STOCK_NAME_MAP[code]
+                            else:
+                                stock_name = realtime_quote.name
                         # 兼容不同数据源的字段（有些数据源可能没有 volume_ratio）
                         volume_ratio = getattr(realtime_quote, 'volume_ratio', None)
                         turnover_rate = getattr(realtime_quote, 'turnover_rate', None)
@@ -1289,7 +1305,8 @@ class StockAnalysisPipeline:
                 result.query_id = query_id
             # Agent weak integrity: placeholder fill only, no LLM retry
             if result and getattr(self.config, "report_integrity_enabled", False):
-                from src.analyzer import check_content_integrity, apply_placeholder_fill
+                from src.data.stock_mapping import STOCK_NAME_MAP
+from src.analyzer import check_content_integrity, apply_placeholder_fill
 
                 pass_integrity, missing = check_content_integrity(
                     result,

@@ -1522,21 +1522,30 @@ def get_stock_name_multi_source(
     Returns:
         股票中文名称
     """
-    # 1. 从上下文获取（实时行情数据）
+    # 1. 从静态映射表获取（优先，确保中文名称）
+    if stock_code in STOCK_NAME_MAP:
+        return STOCK_NAME_MAP[stock_code]
+
+    # 2. 从上下文获取（实时行情数据）
     if context:
         # 优先从 stock_name 字段获取
         if context.get('stock_name'):
             name = context['stock_name']
             if name and not name.startswith('股票'):
+                # 如果名称是纯英文/ASCII，且 STOCK_NAME_MAP 有对应条目，优先用中文
+                if name.isascii() and stock_code in STOCK_NAME_MAP:
+                    return STOCK_NAME_MAP[stock_code]
                 return name
 
         # 其次从 realtime 数据获取
         if 'realtime' in context and context['realtime'].get('name'):
-            return context['realtime']['name']
+            rt_name = context['realtime']['name']
+            # 同上：英文名稱時優先用映射表
+            if rt_name.isascii() and stock_code in STOCK_NAME_MAP:
+                return STOCK_NAME_MAP[stock_code]
+            return rt_name
 
-    # 2. 从静态映射表获取
-    if stock_code in STOCK_NAME_MAP:
-        return STOCK_NAME_MAP[stock_code]
+    # 3. 从数据源获取
 
     # 3. 从数据源获取
     if data_manager is None:
